@@ -13,8 +13,9 @@ import copy
 import re
 
 from music21 import exceptions21
-from music21 import pitch
+from music21 import pitch, duration
 from music21 import prebase
+from music21.note import Note
 
 shorthandNotation = {(None,): (5, 3),
                      (5,): (5, 3),
@@ -160,7 +161,7 @@ class Notation(prebase.ProtoM21Object):
                     'associated with figures in the expanded '
                     ':attr:`~music21.figuredBass.notation.Notation.notationColumn`.'}
 
-    def __init__(self, notationColumn=None):
+    def __init__(self, notationColumn=None, ql=1):
         # Parse notation string
         if notationColumn is None:
             notationColumn = ''
@@ -170,6 +171,7 @@ class Notation(prebase.ProtoM21Object):
         self.origModStrings = None
         self.numbers = None
         self.modifierStrings = None
+        self.length = duration.Duration(ql)
         self._parseNotationColumn()
         self._translateToLonghand()
 
@@ -618,3 +620,20 @@ class Test(unittest.TestCase):
 if __name__ == '__main__':
     import music21
     music21.mainTest(Test)
+
+class FiguredBassNote(Note):
+    def __init__(self, pitchName=None, **keywords):
+        super().__init__(pitchName, **keywords)
+        self.figures: list[Notation] = []
+        if 'figure' in keywords and keywords['figure'] is not None:
+            self.addFigure(keywords['figure'])
+        
+    def addFigure(self, figureNotation):
+        if not isinstance(figureNotation, Notation):
+            figureNotation = Notation(figureNotation)
+        if not figureNotation.length:
+            figureNotation.length = self.quarterLength
+        self.figures.append(figureNotation)
+    
+    def insertFigure(self):
+        pass

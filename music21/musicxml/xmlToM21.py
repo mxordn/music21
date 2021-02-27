@@ -2186,6 +2186,8 @@ class MeasureParser(XMLParserBase):
         # what is the offset in the measure of the current note position?
         self.offsetMeasureNote = 0.0
 
+        self.lastFigures = []
+
         # # keep track of the last rest that was added with a forward tag.
         # # there are many pieces that end with incomplete measures that
         # # older versions of Finale put a forward tag at the end, but this
@@ -2661,7 +2663,12 @@ class MeasureParser(XMLParserBase):
 
         # TODO: beams over rests?
         '''
-        n = note.Note()
+        if self.lastFigures != []:
+            n = figuredBass.notation.FiguredBassNote()
+            n.figures = self.lastFigures
+            self.lastFigures = []
+        else:
+            n = note.Note()
 
         # send whole note since accidental display not in <pitch>
         self.xmlToPitch(mxNote, n.pitch)
@@ -4439,18 +4446,33 @@ class MeasureParser(XMLParserBase):
                               mxHarmony, h)
 
     def xmlFiguredBass(self, mxFiguredBass):
-        print('Generalbass gefunden! ')
+        '''
+        sets a global property self.noteFigures to the value of the detected figures strings.
+        This value is to be used in xmlToNote again.
+        '''
+
+        print('Generalbass gefunden!')
         
         # interface for translateing xml-tags to m21 tags.
         modifiersDict = {
             "sharp": "#",
-            "flat": "b"
+            "flat": "b",
+            "double-sharp": "##",
+            "flat-flat": "bb",
+            "backslash": "#"
         }
 
-        figureList = mxFiguredBass.findall('figure')
+        noteFigures = []
+        xmlFigureList = mxFiguredBass.findall('figure')
         figuresString = ""
-
-        for figure in figureList:
+        
+        #get duration tag
+        figureLength = 1
+        #print(self.divisions)
+        if mxFiguredBass.find('duration') is not None:
+            figureLength = float(mxFiguredBass.find('duration').text) / self.divisions
+        
+        for figure in xmlFigureList:
             if figure.find('figure-number') is not None:
                 figuresString += figure.find('figure-number').text
             if figure.find('prefix') is not None:
@@ -4459,12 +4481,29 @@ class MeasureParser(XMLParserBase):
                     modifier = modifiersDict[modifier]
                 figuresString += modifier
             figuresString += ","
+        noteFigures.append((figuresString[:-1], figureLength))
         
         # create Notation Object
-        if figuresString != "":
-            figureObject = figuredBass.notation.Notation(figuresString[:-1])
-            print(figureObject.figureStrings)
-            
+        if noteFigures != []:
+            localOffset = 0
+            for el in noteFigures:
+                #figureNotationObject = figuredBass.notation.Notation(figuresString[:-1], ql=figureLength)
+                #print(figureNotationObject, figureNotationObject.figureStrings, figureNotationObject.length)
+                #figureOffset = self.xmlToOffset(mxFiguredBass) + localOffset
+                localOffset = el[1]
+                print(noteFigures)
+                #print(figureOffset)
+            #self.insertCoreAndRef(self.offsetMeasureNote + figureOffset,
+            #                  mxFiguredBass, figureNotationObject)
+            for f in noteFigures:
+                self.lastFigures.append(f)
+        else:
+            self.lastFigures = []
+        #print(self.lastFigures)
+        #create a figuredBassNote
+        #if figuresString != "":
+        #    figuredNote = figuredBass.notation.FiguredBassNote(figures=figuresString)
+        #    self.insertCoreAndRef(self.offsetMeasureNote + figureOffset, mxFiguredBass, figuredNote)
 
 
     def xmlToChordSymbol(self, mxHarmony):
