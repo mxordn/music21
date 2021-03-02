@@ -24,7 +24,7 @@ from xml.etree.ElementTree import Element, SubElement, ElementTree
 from typing import List, Optional, Union
 
 # external dependencies
-import webcolors
+#import webcolors
 
 # modules that import this include converter.py.
 # thus, cannot import these here
@@ -45,6 +45,7 @@ from music21 import spanner
 from music21 import stream
 from music21 import style
 from music21.stream.iterator import OffsetIterator
+from music21.figuredBass.notation import FiguredBassNote, Notation
 
 from music21.musicxml import helpers
 from music21.musicxml.partStaffExporter import PartStaffExporterMixin
@@ -2642,6 +2643,7 @@ class MeasureExporter(XMLExporterBase):
     classesToMethods = OrderedDict(
         [
             ('Note', 'noteToXml'),
+#            ('FiguredBassNote', 'figuredNoteToXml'),
             ('NoChord', 'noChordToXml'),
             ('ChordWithFretBoard', 'chordWithFretBoardToXml'),
             ('ChordSymbol', 'chordSymbolToXml'),
@@ -3172,8 +3174,8 @@ class MeasureExporter(XMLExporterBase):
     def noteToXml(self, n: note.GeneralNote, noteIndexInChord=0, chordParent=None):
         # noinspection PyShadowingNames
         '''
-        Translate a music21 :class:`~music21.note.Note` or a Rest into a
-        ElementTree, note element.
+        Translate a music21 :class:`~music21.note.Note` (NEW: Also figuredBass.notation.FiguredBassNote)
+        or a Rest into a ElementTree, note element (and a prefixed figured-bass element.
 
         Note that, some note-attached spanners, such
         as octave shifts, produce direction (and direction types)
@@ -3272,6 +3274,12 @@ class MeasureExporter(XMLExporterBase):
         else:
             chordOrN = chordParent
 
+        #work with figuredBass elements and call method 
+        if isinstance(n, FiguredBassNote):
+            if n.figures != []:
+                for figureCnt in range(len(n.figures)):
+                    self.figuresToXml(n, figureCnt=figureCnt)
+        
         mxNote = Element('note')
         # self.setFont(mxNote, chordOrN)
         self.setPrintStyle(mxNote, chordOrN)
@@ -3459,8 +3467,40 @@ class MeasureExporter(XMLExporterBase):
                 mxLyric = self.lyricToXml(lyricObj)
                 mxNote.append(mxLyric)
         # TODO: play
+
         self.xmlRoot.append(mxNote)
+
         return mxNote
+
+
+    def figuresToXml(self, n: note.GeneralNote, figureCnt=1, noteIndexInChord=0, chordParent=None):
+        #do Figure elements
+        mxFB = Element('figured-bass')
+        figureList = [n.figures[figureCnt]]
+        print('Hier sitzt ein Generalbass: ', mxFB, n.figures)
+        if figureList != []:
+            for el in figureList:
+                #check whether el is a fb Notation Object or a tuple
+                if not isinstance(el, Notation):
+                    figureObj = Notation(el[0]).figureStrings
+                    elQuarterLength = el[1]
+                elif isinstance(el, Notation):
+                    figureObj = el.figureStrings
+                    elQuarterLength = el.quarterLength.quarterLength
+                else:
+                    print('Nothing readable')
+                if figureObj:
+                    for fbnumber in figureObj:
+                        mxFigure = SubElement(mxFB, 'figure')
+                        mxFNumber = SubElement(mxFigure, 'figure-number')
+                        mxFNumber.text = fbnumber
+                    mxFbDuration = SubElement(mxFB, 'duration')
+                    mxFbDuration.text = str(round(elQuarterLength * self.currentDivisions))
+
+        self.xmlRoot.append(mxFB)
+        #print('ftx Hier das neue Root: ', self.xmlRoot.findall('figured-bass'))
+        self.addDividerComment('figured-bass')
+        return mxFB
 
     def restToXml(self, r: note.Rest):
         # noinspection PyShadowingNames

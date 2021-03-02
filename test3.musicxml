@@ -67,7 +67,7 @@
           </system-layout>
         </print>
       <attributes>
-        <divisions>1</divisions>
+        <divisions>2</divisions>
         <key>
           <fifths>-2</fifths>
           </key>
@@ -87,13 +87,13 @@
         <figure>
           <figure-number>3</figure-number>
           </figure>
-        <duration>0</duration>
+        <duration>1</duration>
         </figured-bass>
       <figured-bass>
         <figure>
           <figure-number>7</figure-number>
           </figure>
-        <duration>0</duration>
+        <duration>1</duration>
         </figured-bass>
       <note default-x="111.20" default-y="-40.00">
         <pitch>

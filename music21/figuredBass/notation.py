@@ -171,7 +171,7 @@ class Notation(prebase.ProtoM21Object):
         self.origModStrings = None
         self.numbers = None
         self.modifierStrings = None
-        self.length = duration.Duration(ql)
+        self.quarterLength = duration.Duration(ql)
         self._parseNotationColumn()
         self._translateToLonghand()
 
@@ -610,18 +610,18 @@ def convertToPitch(pitchString):
     raise TypeError('Cannot convert ' + pitchString + ' to a music21 Pitch.')
 
 
-_DOC_ORDER = [Notation, Figure, Modifier]
-
-
-class Test(unittest.TestCase):
-    pass
-
-
-if __name__ == '__main__':
-    import music21
-    music21.mainTest(Test)
-
 class FiguredBassNote(Note):
+    '''
+    Extends :class:`~music21.note.Note()` with support for for figures.
+    The show() Method below will print a figuredbass notation in MuseScore.
+
+    >>> from music21 import *
+    >>> fbNote = figuredBass.notation.FiguredBassNote(pitch.Pitch('G2'), figure="5,3")
+    >>> s = stream.Stream()
+    >>> s.append(fbNote)
+    >>> s.show()
+    '''
+
     def __init__(self, pitchName=None, **keywords):
         super().__init__(pitchName, **keywords)
         self.figures: list[Notation] = []
@@ -631,9 +631,20 @@ class FiguredBassNote(Note):
     def addFigure(self, figureNotation):
         if not isinstance(figureNotation, Notation):
             figureNotation = Notation(figureNotation)
-        if not figureNotation.length:
-            figureNotation.length = self.quarterLength
+        if not figureNotation.quarterLength:
+            figureNotation.quarterLength = self.quarterLength
         self.figures.append(figureNotation)
     
     def insertFigure(self):
         pass
+
+_DOC_ORDER = [Notation, Figure, Modifier, FiguredBassNote]
+
+
+class Test(unittest.TestCase):
+    pass
+
+
+if __name__ == '__main__':
+    import music21
+    music21.mainTest(Test)
