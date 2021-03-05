@@ -30,6 +30,25 @@ shorthandNotation = {(None,): (5, 3),
                      (2,): (6, 4, 2),
                      }
 
+prefixes = ["+", "#", "++", "##"]
+suffixes = ["\\"]
+
+modifiersDictXmlToM21 = {
+                    "sharp": "#",
+                    "flat": "b",
+                    "double-sharp": "##",
+                    "flat-flat": "bb",
+                    "backslash": "\\"
+                }
+
+modifiersDictM21ToXml = {
+                    "#": "sharp",
+                    "b": "flat",
+                    "##": "double-sharp",
+                    "bb": "flat-flat",
+                    "\\": "backslash",
+                    "+": "sharp"
+}
 
 class Notation(prebase.ProtoM21Object):
     '''

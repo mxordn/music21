@@ -4451,16 +4451,16 @@ class MeasureParser(XMLParserBase):
         This value is to be used in xmlToNote again.
         '''
 
-        print('Generalbass gefunden!')
+        #print('Generalbass gefunden!')
         
-        # interface for translateing xml-tags to m21 tags.
-        modifiersDict = {
-            "sharp": "#",
-            "flat": "b",
-            "double-sharp": "##",
-            "flat-flat": "bb",
-            "backslash": "#"
-        }
+        # interface for translating xml-tags to m21 tags.
+        #modifiersDict = {
+        #    "sharp": "#",
+        #    "flat": "b",
+        #    "double-sharp": "##",
+        #    "flat-flat": "bb",
+        #    "backslash": "\\"
+        #}
 
         noteFigures = []
         xmlFigureList = mxFiguredBass.findall('figure')
@@ -4477,9 +4477,16 @@ class MeasureParser(XMLParserBase):
                 figuresString += figure.find('figure-number').text
             if figure.find('prefix') is not None:
                 modifier = figure.find('prefix').text
-                if modifier in modifiersDict:
-                    modifier = modifiersDict[modifier]
-                figuresString += modifier
+                #print('Modfier Prefix: ', modifier)
+                if modifier in figuredBass.notation.modifiersDictXmlToM21:
+                    modifier = figuredBass.notation.modifiersDictXmlToM21[modifier]
+                    figuresString = modifier + figuresString
+            if figure.find('suffix') is not None:
+                modifier = figure.find('suffix').text
+                #print('Modfier Suffix: ', modifier)
+                if modifier in figuredBass.notation.modifiersDictXmlToM21:
+                    modifier = figuredBass.notation.modifiersDictXmlToM21[modifier]
+                    figuresString += modifier
             figuresString += ","
         noteFigures.append((figuresString[:-1], figureLength))
         
@@ -4491,7 +4498,7 @@ class MeasureParser(XMLParserBase):
                 #print(figureNotationObject, figureNotationObject.figureStrings, figureNotationObject.length)
                 #figureOffset = self.xmlToOffset(mxFiguredBass) + localOffset
                 localOffset = el[1]
-                print(noteFigures)
+                #print(noteFigures)
                 #print(figureOffset)
             #self.insertCoreAndRef(self.offsetMeasureNote + figureOffset,
             #                  mxFiguredBass, figureNotationObject)

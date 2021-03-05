@@ -24,7 +24,7 @@ from xml.etree.ElementTree import Element, SubElement, ElementTree
 from typing import List, Optional, Union
 
 # external dependencies
-#import webcolors
+import webcolors
 
 # modules that import this include converter.py.
 # thus, cannot import these here
@@ -45,7 +45,7 @@ from music21 import spanner
 from music21 import stream
 from music21 import style
 from music21.stream.iterator import OffsetIterator
-from music21.figuredBass.notation import FiguredBassNote, Notation
+from music21.figuredBass.notation import FiguredBassNote, Notation, suffixes, prefixes, modifiersDictM21ToXml
 
 from music21.musicxml import helpers
 from music21.musicxml.partStaffExporter import PartStaffExporterMixin
@@ -3274,7 +3274,7 @@ class MeasureExporter(XMLExporterBase):
         else:
             chordOrN = chordParent
 
-        #work with figuredBass elements and call method 
+        #work with figuredBass elements and call method for parseing fb elements 
         if isinstance(n, FiguredBassNote):
             if n.figures != []:
                 for figureCnt in range(len(n.figures)):
@@ -3475,31 +3475,52 @@ class MeasureExporter(XMLExporterBase):
 
     def figuresToXml(self, n: note.GeneralNote, figureCnt=1, noteIndexInChord=0, chordParent=None):
         #do Figure elements
+        self.addDividerComment('BEGIN: figured-bass')
+
         mxFB = Element('figured-bass')
-        figureList = [n.figures[figureCnt]]
-        print('Hier sitzt ein Generalbass: ', mxFB, n.figures)
-        if figureList != []:
-            for el in figureList:
-                #check whether el is a fb Notation Object or a tuple
-                if not isinstance(el, Notation):
-                    figureObj = Notation(el[0]).figureStrings
-                    elQuarterLength = el[1]
-                elif isinstance(el, Notation):
-                    figureObj = el.figureStrings
-                    elQuarterLength = el.quarterLength.quarterLength
-                else:
-                    print('Nothing readable')
-                if figureObj:
-                    for fbnumber in figureObj:
-                        mxFigure = SubElement(mxFB, 'figure')
-                        mxFNumber = SubElement(mxFigure, 'figure-number')
-                        mxFNumber.text = fbnumber
-                    mxFbDuration = SubElement(mxFB, 'duration')
-                    mxFbDuration.text = str(round(elQuarterLength * self.currentDivisions))
+        currentFigure = n.figures[figureCnt]
+        print('Hier sitzt ein Generalbass: ', mxFB, currentFigure)
+        if currentFigure:
+            #for el in figureList:
+            #check whether el is a fb Notation Object or a tuple
+            if not isinstance(currentFigure, Notation):
+                figureObj = Notation(currentFigure[0], ql=currentFigure[1])
+            elif isinstance(currentFigure, Notation):
+                figureObj = currentFigure
+            #    elQuarterLength = el.quarterLength.quarterLength
+            else:
+                print('Nothing readable')
+            if figureObj:
+                for fbnumber in figureObj.figureStrings:
+                    mxFigure = SubElement(mxFB, 'figure')
+                    print(fbnumber)
+                    #get only the fbnumber without prefixes or suffixes
+                    fbPureNumber =  fbnumber.translate({ord(i): None for i in "+-#b\\"})
+                    
+                    #modifiers are eother handled as prefixes or suffixes here
+                    fbModifierPrefix = list(set.intersection(*map(set, [list(fbnumber), prefixes])))
+                    fbModifierSuffix = list(set.intersection(*map(set, [list(fbnumber), suffixes])))
+                    if fbModifierPrefix != []:
+                        mxModifier = SubElement(mxFigure, 'prefix')
+                        mxModifier.text = ""
+                        for text in fbModifierPrefix:
+                            mxModifier.text = mxModifier.text + modifiersDictM21ToXml[text]
+                    if fbModifierSuffix != []:
+                        print("Suffix!")
+                        mxModifier = SubElement(mxFigure, 'suffix')
+                        mxModifier.text = ""
+                        for text in fbModifierSuffix:
+                            mxModifier.text = mxModifier.text + modifiersDictM21ToXml[text]
+                    
+                    #mxModifier.text = figureObj.origModStrings
+                    mxFNumber = SubElement(mxFigure, 'figure-number')
+                    mxFNumber.text = fbPureNumber
+                mxFbDuration = SubElement(mxFB, 'duration')
+                mxFbDuration.text = str(round(figureObj.quarterLength.quarterLength * self.currentDivisions))
 
         self.xmlRoot.append(mxFB)
+        self.addDividerComment('END: figured-bass')
         #print('ftx Hier das neue Root: ', self.xmlRoot.findall('figured-bass'))
-        self.addDividerComment('figured-bass')
         return mxFB
 
     def restToXml(self, r: note.Rest):
